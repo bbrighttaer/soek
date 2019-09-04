@@ -265,12 +265,12 @@ def get_hparam_config(flags):
 
 def get_hparams(flags):
     return {"input_dim": 784,
-            "hdims": (512, 256),
-            "dprob": 0.25,
-            "batch_size": 128,
-            "optimizer__global__lr": 0.01,
-            "optimizer__global__weight_decay": 1e-5,
-            "optimizer": "adam"}
+            "hdims": [748, 1131, 947],
+            "dprob": 0.2958835664552529,
+            "batch_size": 256,
+            "optimizer__global__lr": 0.0025595717862307707,
+            "optimizer__global__weight_decay": 0.011761824861516251,
+            "optimizer": "adamax"}
 
 
 class Flags(object):
