@@ -1,5 +1,5 @@
 # Author: bbrighttaer
-# Project: adgcca
+# Project: soek
 # Date: 7/9/19
 # Time: 1:03 PM
 # File: sim_data.py

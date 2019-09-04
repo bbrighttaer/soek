@@ -60,7 +60,7 @@ class ParamSearchAlg(abc.ABC):
 
     def __init__(self, hparam_config, num_folds, initializer, data_provider, train_fn, eval_fn, save_model_fn,
                  init_args=dict(), data_args=dict(), train_args=dict(), data_node=None, split_label=None,
-                 view_label=None, dataset_label=None):
+                 sim_label=None, dataset_label=None):
         self.config = hparam_config
         self.num_folds = num_folds
         self.initializer_fn = initializer
@@ -74,7 +74,7 @@ class ParamSearchAlg(abc.ABC):
 
         self.data_node = data_node
         self.split_label = split_label
-        self.view = view_label
+        self.sim = sim_label
         self.dataset_label = dataset_label
 
         self.stats = HyperParamStats()

@@ -14,11 +14,10 @@ from skopt import gp_minimize
 from skopt.space import Integer, Real, Categorical
 from skopt.utils import use_named_args
 
-from adgcca.hyper.base import ParamSearchAlg, ParamInstance
-from adgcca.hyper.params import ConstantParam, LogRealParam, DiscreteParam, CategoricalParam, DictParam, \
+from soek import ParamSearchAlg, ParamInstance
+from soek import ConstantParam, LogRealParam, DiscreteParam, CategoricalParam, DictParam, \
     RealParam
-from adgcca.utils.sim_data import DataNode
-from adgcca.utils.train_helpers import save_model
+from soek import DataNode
 
 size_suffix = "_size"
 
@@ -127,9 +126,10 @@ def _convert_to_hparams(bopt_params, params_config, hparams, prefix=None):
 
         val = []
         for j in range(size):
-            prefix = prefix if prefix else ""
+            prefix = prefix if prefix else ''
             val.append(bopt_params["{}{}___{}".format(prefix, param, j)])
-        val = val[0] if len(val) == 1 else val
+        if not conf.is_list:
+            val = val[0]
         hparams[param] = val
 
     return hparams
@@ -164,7 +164,7 @@ def _create_objective(alg, fold, train_data, val_data, model_dir, model_name, da
         # save model
         if model_dir is not None and model_name is not None:
             alg.save_model_fn(best_model, model_dir,
-                              "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(alg.dataset_label, alg.view,
+                              "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(alg.dataset_label, alg.sim,
                                                                           alg.stats.current_param.id,
                                                                           fold, count.i, model_name, alg.split_label,
                                                                           epoch,
@@ -213,7 +213,10 @@ class BayesianOptSearchCV(ParamSearchAlg):
 
     def fit(self, model_dir, model_name, max_iter=100, verbose=True, seed=None):
         folds_data = []
-        self.data_node.data = folds_data
+
+        if self.data_node is not None:
+            self.data_node.data = folds_data
+
         for fold in range(self.num_folds):
             k_node = DataNode(label="BayOpt_search_fold-%d" % fold)
             folds_data.append(k_node)

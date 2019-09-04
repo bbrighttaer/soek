@@ -10,9 +10,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from adgcca.hyper.base import ParamInstance, ParamSearchAlg
-from adgcca.utils.sim_data import DataNode
-from adgcca.utils.train_helpers import save_model
+from soek import ParamInstance, ParamSearchAlg
+from soek import DataNode
 
 
 class RandomSearchCV(ParamSearchAlg):
@@ -23,7 +22,10 @@ class RandomSearchCV(ParamSearchAlg):
 
     def fit(self, model_dir, model_name, max_iter=5, verbose=True, seed=None):
         folds_data = []
-        self.data_node.data = folds_data
+
+        if self.data_node is not None:
+            self.data_node.data = folds_data
+
         for fold in range(self.num_folds):
             k_node = DataNode(label="Random_search_fold-%d" % fold)
             folds_data.append(k_node)
@@ -59,11 +61,12 @@ class RandomSearchCV(ParamSearchAlg):
 
                 # save model
                 if model_dir is not None and model_name is not None:
-                    save_model(best_model, model_dir,
-                               "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(self.dataset_label, self.view,
-                                                                           self.stats.current_param.id,
-                                                                           fold, i, model_name, self.split_label, epoch,
-                                                                           score))
+                    self.save_model_fn(best_model, model_dir,
+                                       "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(self.dataset_label, self.sim,
+                                                                                   self.stats.current_param.id,
+                                                                                   fold, i, model_name,
+                                                                                   self.split_label, epoch,
+                                                                                   score))
 
                 if verbose:
                     print("Random search iter = {}: params = {}".format(i, self.stats.current_param))

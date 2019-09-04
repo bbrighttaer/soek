@@ -81,7 +81,7 @@ class Trainer(abc.ABC):
         """
         pass
 
-    @abc.abstractmethod
+    @abc.abstractstaticmethod
     def evaluate_model(eval_fn, *args, **kwargs):
         """
         Procedures for loading and evaluating an already trained model goes here.
@@ -93,5 +93,28 @@ class Trainer(abc.ABC):
         :param kwargs: dict
             Extra arguments to this method as desired.
         :return:
+        """
+        pass
+
+    @abc.abstractstaticmethod
+    def save_model(model, path, name):
+        """
+        Saves the model parameters.
+
+        :param model:
+        :param path:
+        :param name:
+        :return:
+        """
+        pass
+
+    @abc.abstractstaticmethod
+    def load_model(path, name):
+        """
+        Loads the parameters of a model.
+
+        :param path:
+        :param name:
+        :return: The saved state_dict.
         """
         pass
