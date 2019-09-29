@@ -212,6 +212,10 @@ class Count(object):
 
 class BayesianOptSearchCV(ParamSearchAlg):
 
+    def __init__(self, *args, acq_func="EI", **kwargs):
+        super(BayesianOptSearchCV, self).__init__(*args, **kwargs)
+        self.acq_func = acq_func
+
     def fit(self, model_dir, model_name, max_iter=100, verbose=True, seed=None):
         folds_data = []
 
@@ -238,7 +242,7 @@ class BayesianOptSearchCV(ParamSearchAlg):
                 dimensions=space,
                 n_calls=max_iter,
                 random_state=seed,
-                acq_func="EI")
+                acq_func=self.acq_func)
 
             print("Fold {}, best score={:.4f}".format(fold, res_gp.fun))
 
