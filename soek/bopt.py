@@ -161,6 +161,10 @@ def _create_objective(alg, fold, train_data, val_data, model_dir, model_name, da
         # get the score of this hyperparameter set
         score = alg.stats.current_param.score
 
+        # avoid nan scores in search.
+        if str(score) == "nan":
+            score = -1e5
+
         # save model
         if model_dir is not None and model_name is not None:
             alg.save_model_fn(best_model, model_dir,
@@ -175,10 +179,7 @@ def _create_objective(alg, fold, train_data, val_data, model_dir, model_name, da
 
         # move current hparams to records
         alg.stats.update_records()
-
-        # avoid nan scores in search. TODO: replace this hack with an organic approach.
-        if str(score) == "nan":
-            score = -1e5
+        alg.stats.to_csv(alg.results_file)
 
         # we want to maximize the score so negate it to invert minimization by skopt
         return -score

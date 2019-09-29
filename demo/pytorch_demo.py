@@ -343,11 +343,12 @@ if __name__ == '__main__':
                                    data_node=sim_data,
                                    split_label="train_val",
                                    sim_label=sim_label,
-                                   dataset_label="mnist")
+                                   dataset_label="mnist",
+                                   results_file="{}_{}_poc_{}.csv".format(flags.hparam_search_alg, sim_label,
+                                                                          date_label))
         stats = hparam_search.fit(model_dir="models",
                                   model_name=flags.model_name, max_iter=40, seed=seed)
         print(stats)
-        stats.to_csv("{}_{}_poc_{}.csv".format(flags.hparam_search_alg, sim_label, date_label))
         print("Best params = {}".format(stats.best(m="max")))
     else:
         datasets = trainer.data_provider(fold=k)

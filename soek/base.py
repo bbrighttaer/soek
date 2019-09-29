@@ -59,9 +59,10 @@ class ParamSearchAlg(abc.ABC):
     """
 
     def __init__(self, hparam_config, num_folds, initializer, data_provider, train_fn, eval_fn, save_model_fn,
-                 init_args=dict(), data_args=dict(), train_args=dict(), data_node=None, split_label=None,
+                 results_file, init_args=dict(), data_args=dict(), train_args=dict(), data_node=None, split_label=None,
                  sim_label=None, dataset_label=None):
         self.config = hparam_config
+        self.results_file = results_file
         self.num_folds = num_folds
         self.initializer_fn = initializer
         self.data_provider_fn = data_provider
@@ -182,6 +183,7 @@ class HyperParamStats(object):
                     df_dict[k] = [rec[k]]
                 else:
                     df_dict[k].append(rec[k])
-        df = pd.DataFrame(data=df_dict)
-        df = df.sort_values(by=["score"], ascending=False).reset_index(drop=True)
-        df.to_csv(file, index=False)
+        if len(self.records) > 0:
+            df = pd.DataFrame(data=df_dict)
+            df = df.sort_values(by=["score"], ascending=False).reset_index(drop=True)
+            df.to_csv(file, index=False)

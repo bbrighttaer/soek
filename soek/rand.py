@@ -59,6 +59,10 @@ class RandomSearchCV(ParamSearchAlg):
                 self.train_args["sim_data_node"] = iter_data_node
                 best_model, score, epoch = self.train_fn(self._score_fn, *init_objs, **self.train_args)
 
+                # avoid nan scores in search. TODO: replace this hack with an organic approach.
+                if str(score) == "nan":
+                    score = -1e5
+
                 # save model
                 if model_dir is not None and model_name is not None:
                     self.save_model_fn(best_model, model_dir,
@@ -73,4 +77,5 @@ class RandomSearchCV(ParamSearchAlg):
 
                 # move current hparams to records
                 self.stats.update_records()
+                self.stats.to_csv(self.results_file)
         return self.stats
