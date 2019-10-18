@@ -10,7 +10,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from skopt import gp_minimize
+from skopt import gp_minimize, gbrt_minimize, forest_minimize
 from skopt.space import Integer, Real, Categorical
 from skopt.utils import use_named_args
 
@@ -212,9 +212,12 @@ class Count(object):
 
 class BayesianOptSearchCV(ParamSearchAlg):
 
-    def __init__(self, *args, acq_func="EI", **kwargs):
+    def __init__(self, *args, acq_func="EI", minimizer="gbrt", **kwargs):
         super(BayesianOptSearchCV, self).__init__(*args, **kwargs)
         self.acq_func = acq_func
+        self.minimizer = {"gp": gp_minimize,
+                          "gbrt": gbrt_minimize,
+                          "rf": forest_minimize}.get(minimizer.lower(), gp_minimize)
 
     def fit(self, model_dir, model_name, max_iter=100, verbose=True, seed=None):
         folds_data = []
@@ -237,13 +240,13 @@ class BayesianOptSearchCV(ParamSearchAlg):
             # BayOpt hyperparameter search.
             space = _transform_hparams_dict(self.config)
             print("BayOpt space dimension=%d" % len(space))
-            res_gp = gp_minimize(
+            results = self.minimizer(
                 func=_create_objective(self, fold, train_data, val_data, model_dir, model_name, k_node, verbose),
                 dimensions=space,
                 n_calls=max_iter,
                 random_state=seed,
                 acq_func=self.acq_func)
 
-            print("Fold {}, best score={:.4f}".format(fold, res_gp.fun))
+            print("Fold {}, best score={:.4f}".format(fold, results.fun))
 
         return self.stats
