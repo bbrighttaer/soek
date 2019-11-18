@@ -10,8 +10,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from soek import ParamInstance, ParamSearchAlg
 from soek import DataNode
+from soek import ParamInstance, ParamSearchAlg
 
 
 class RandomSearchCV(ParamSearchAlg):
@@ -21,43 +21,43 @@ class RandomSearchCV(ParamSearchAlg):
         return hparams
 
     def fit(self, model_dir, model_name, max_iter=5, verbose=True, seed=None):
-        folds_data = []
-
+        iter_data_list = []
         if self.data_node is not None:
-            self.data_node.data = folds_data
+            self.data_node.data = iter_data_list
 
-        for fold in range(self.num_folds):
-            k_node = DataNode(label="Random_search_fold-%d" % fold)
-            folds_data.append(k_node)
+        # Random hyperparameter search.
+        for i in range(max_iter):
+            folds_data = []
+            iter_data_node = DataNode(label="iteration-%d" % i, data=folds_data)
+            iter_data_list.append(iter_data_node)
 
-            # Get data
-            data = self.data_provider_fn(fold, **self.data_args)
-            train_data = data["train"]
-            val_data = data["val"]
-            if "test" in data:
-                test_data = data["test"]
-                self.init_args["test_dataset"] = test_data
+            # Get hyperparameters.
+            hparams = self._sample_params()
+            self.stats.current_param = ParamInstance(hparams)
 
-            iter_data_list = []
-            k_node.data = iter_data_list
-
-            # Random hyperparameter search.
-            for i in range(max_iter):
-                iter_data_node = DataNode(label="iteration-%d" % i)
-                iter_data_list.append(iter_data_node)
-
-                # Get hyperparameters.
-                hparams = self._sample_params()
+            for fold in range(self.num_folds):
                 if verbose:
                     print("\nFold {}, param search iteration {}, hparams={}".format(fold, i, hparams))
-                self.stats.current_param = ParamInstance(hparams)
+
+                k_node = DataNode(label="Random_search_fold-%d" % fold)
+                folds_data.append(k_node)
+
+                # Get data
+                data = self.data_provider_fn(fold, **self.data_args)
+                train_data = data["train"]
+                val_data = data["val"]
+                if "test" in data:
+                    test_data = data["test"]
+                    self.init_args["test_dataset"] = test_data
 
                 # initialize model, dataloaders, and other elements.
                 init_objs = self.initializer_fn(hparams, train_data, val_data, **self.init_args)
 
                 # model training
-                self.train_args["sim_data_node"] = iter_data_node
-                best_model, score, epoch = self.train_fn(self._score_fn, *init_objs, **self.train_args)
+                self.train_args["sim_data_node"] = k_node
+                results = self.train_fn(*init_objs, **self.train_args)
+                best_model, score, epoch = results['model'], results['score'], results['epoch']
+                self.stats.current_param.add_score(score)
 
                 # avoid nan scores in search. TODO: replace this hack with an organic approach.
                 if str(score) == "nan":
@@ -71,11 +71,10 @@ class RandomSearchCV(ParamSearchAlg):
                                                                                    fold, i, model_name,
                                                                                    self.split_label, epoch,
                                                                                    score))
+            if verbose:
+                print("Random search iter = {}: params = {}".format(i, self.stats.current_param))
 
-                if verbose:
-                    print("Random search iter = {}: params = {}".format(i, self.stats.current_param))
-
-                # move current hparams to records
-                self.stats.update_records()
-                self.stats.to_csv(self.results_file)
+            # move current hparams to records
+            self.stats.update_records()
+            self.stats.to_csv(self.results_file)
         return self.stats

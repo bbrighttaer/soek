@@ -35,6 +35,7 @@ date_label = currentDT.strftime("%Y_%m_%d__%H_%M_%S")
 
 seed = 123
 torch.manual_seed(seed)
+torch.cuda.set_device(1)
 np.random.seed(seed)
 random.seed(seed)
 
@@ -109,7 +110,7 @@ class Demo(so.Trainer):
         return np.mean(list(eval_dict.values()))
 
     @staticmethod
-    def train(eval_fn, model, optimizer, data_loaders, metrics, n_iters=5000, sim_data_node=None):
+    def train(model, optimizer, data_loaders, metrics, n_iters=5000, sim_data_node=None):
         start = time.time()
         best_model_wts = model.state_dict()
         best_score = -10000
@@ -179,7 +180,7 @@ class Demo(so.Trainer):
                     else:
                         if str(loss.item()) != "nan":  # useful in hyperparameter search
                             eval_dict = {}
-                            score = eval_fn(eval_dict, y, y_pred, metrics)
+                            score = Demo.evaluate(eval_dict, y, y_pred, metrics)
                             # for epoch stats
                             epoch_scores.append(score)
 
@@ -217,7 +218,7 @@ class Demo(so.Trainer):
         duration = time.time() - start
         print('\nModel training duration: {:.0f}m {:.0f}s'.format(duration // 60, duration % 60))
         model.load_state_dict(best_model_wts)
-        return model, best_score, best_epoch
+        return {'model': model, 'score': best_score, 'epoch': best_epoch}
 
     @staticmethod
     def evaluate_model(eval_fn, *args, **kwargs):
@@ -323,7 +324,7 @@ if __name__ == '__main__':
         # arguments to callables
         extra_init_args = {}
         extra_data_args = {}
-        extra_train_args = {"n_iters": 5000}
+        extra_train_args = {"n_iters": 1000}
 
         hparams_conf = get_hparam_config(flags)
 
@@ -335,7 +336,6 @@ if __name__ == '__main__':
                                    initializer=trainer.initialize,
                                    data_provider=trainer.data_provider,
                                    train_fn=trainer.train,
-                                   eval_fn=trainer.evaluate,
                                    save_model_fn=trainer.save_model,
                                    init_args=extra_init_args,
                                    data_args=extra_data_args,
@@ -344,11 +344,11 @@ if __name__ == '__main__':
                                    split_label="train_val",
                                    sim_label=sim_label,
                                    dataset_label="mnist",
-                                   minimizer="gbrt",  # This parameter is only applicable to BayesianOptSearchCV
+                                   # minimizer="gbrt",  # This parameter is only applicable to BayesianOptSearchCV
                                    results_file="{}_{}_poc_{}.csv".format(flags.hparam_search_alg, sim_label,
                                                                           date_label))
         stats = hparam_search.fit(model_dir="models",
-                                  model_name=flags.model_name, max_iter=40, seed=seed)
+                                  model_name=flags.model_name, max_iter=10, seed=seed)
         print(stats)
         print("Best params = {}".format(stats.best(m="max")))
     else:
@@ -360,8 +360,8 @@ if __name__ == '__main__':
             pass
         else:
             # Train the model
-            model, score, epoch = trainer.train(trainer.evaluate, model, optimizer, data_loaders, metrics,
-                                                n_iters=10000, sim_data_node=sim_data)
+            model, score, epoch = trainer.train(model, optimizer, data_loaders, metrics, n_iters=10000,
+                                                sim_data_node=sim_data)
             # Save the model
             trainer.save_model(model, flags.model_dir,
                                "mnist_{}_{}_poc_{}_{:.5f}".format(sim_label, flags.model_name, epoch, score))

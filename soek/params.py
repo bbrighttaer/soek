@@ -57,7 +57,7 @@ class DiscreteParam(Param):
 
 class CategoricalParam(Param):
     """
-    Random selection of a list of options.
+    Random selection of a list of options (all are mutually exclusive).
     """
     __name__ = "categorical_param"
 
@@ -67,10 +67,13 @@ class CategoricalParam(Param):
     def sample(self):
         size = _get_size(self.size)
         sel = []
-        for i in range(size):
+        while len(sel) < size:
+            # for i in range(size):
             probs = rand.uniform(0., 1., len(self.choices))
             idx = np.argmax(probs)
-            sel.append(self.choices[idx])
+            choice = self.choices[idx]
+            if choice not in sel:
+                sel.append(choice)
         if self.is_list:
             return sel
         else:

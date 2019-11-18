@@ -42,10 +42,6 @@ class ParamSearchAlg(abc.ABC):
             the order returned) to this function after `eval_fn` and then followed by any other extra arguments in
             `train_args`.
             This function shall return the best model after the training.
-        eval_fn: callable
-            A function that is passed to `train_fn` to evaluate the performance of a trained model and return the
-            score for the hyperparameters used for the training. It must returned a single real-value.
-            It's assumed this evaluation function is called after every validation batch.
         init_args: dict
             A dictionary of keyword-args (kwargs) that are extra arguments to be passed to the initialization function
             if any.
@@ -58,7 +54,7 @@ class ParamSearchAlg(abc.ABC):
         data_node: ``DataNode`` for collecting a simulation instance's data
     """
 
-    def __init__(self, hparam_config, num_folds, initializer, data_provider, train_fn, eval_fn, save_model_fn,
+    def __init__(self, hparam_config, num_folds, initializer, data_provider, train_fn, save_model_fn,
                  results_file, init_args=dict(), data_args=dict(), train_args=dict(), data_node=None, split_label=None,
                  sim_label=None, dataset_label=None):
         self.config = hparam_config
@@ -67,7 +63,6 @@ class ParamSearchAlg(abc.ABC):
         self.initializer_fn = initializer
         self.data_provider_fn = data_provider
         self.train_fn = train_fn
-        self.eval_fn = eval_fn
         self.save_model_fn = save_model_fn
         self.init_args = init_args
         self.data_args = data_args
@@ -79,11 +74,6 @@ class ParamSearchAlg(abc.ABC):
         self.dataset_label = dataset_label
 
         self.stats = HyperParamStats()
-
-    def _score_fn(self, *args, **kwargs):
-        score = self.eval_fn(*args, **kwargs)
-        self.stats.current_param.add_score(score)
-        return score
 
     @abc.abstractmethod
     def fit(self, model_dir, model_name, max_iter=5, verbose=True):
@@ -116,7 +106,7 @@ class ParamInstance(object):
     def as_dict(self):
         return {**self.params, "score": self.score}
 
-    def __repr__(self):
+    def __str__(self):
         return str(self.as_dict())
 
 
@@ -137,7 +127,7 @@ class HyperParamStats(object):
                 self.records.append(self.current_param.as_dict())
             self.current_param = None
 
-    def __repr__(self):
+    def __str__(self):
         s = ""
         for rec in self.records:
             s += str(rec) + "\n"

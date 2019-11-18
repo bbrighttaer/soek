@@ -135,28 +135,59 @@ def _convert_to_hparams(bopt_params, params_config, hparams, prefix=None):
     return hparams
 
 
-def _create_objective(alg, fold, train_data, val_data, model_dir, model_name, data_node, verbose=True):
+def _create_objective(alg, model_dir, model_name, verbose=True):
     count = Count()
     iter_data_list = []
-    data_node.data = iter_data_list
+    if alg.data_node is not None:
+        alg.data_node.data = iter_data_list
 
-    @parse_config(params_config=alg.config)
+    @parse_config(alg.config)
     def objective(**bopt_params):
         count.inc()
-
-        iter_data_node = DataNode(label="iteration-%d" % count.i)
+        folds_data = []
+        iter_data_node = DataNode(label="iteration-%d" % count.i, data=folds_data)
         iter_data_list.append(iter_data_node)
 
         # Get hyperparameters.
         hparams = _to_hparams_dict(bopt_params=bopt_params, params_config=alg.config)
-
-        if verbose:
-            print("\nFold {}, param search iteration {}, hparams={}".format(fold, count.i, hparams))
         alg.stats.current_param = ParamInstance(hparams)
 
-        # start of training with selected parameters
-        best_model, score, epoch = train_model(hparams, iter_data_node)
-        # end of training
+        for fold in range(alg.num_folds):
+            k_node = DataNode(label="BayOpt_search_fold-%d" % fold)
+            folds_data.append(k_node)
+
+            # Get data
+            data = alg.data_provider_fn(fold, **alg.data_args)
+            train_data = data["train"]
+            val_data = data["val"]
+            if "test" in data:
+                test_data = data["test"]
+                alg.init_args["test_dataset"] = test_data
+
+            if verbose:
+                print("\nFold {}, param search iteration {}, hparams={}".format(fold, count.i, hparams))
+
+            # initialize model, dataloaders, and other elements.
+            init_objs = alg.initializer_fn(hparams, train_data, val_data, **alg.init_args)
+
+            # start of training with selected parameters
+            alg.train_args["sim_data_node"] = k_node
+            results = alg.train_fn(*init_objs, **alg.train_args)
+            best_model, score, epoch = results['model'], results['score'], results['epoch']
+            alg.stats.current_param.add_score(score)
+            # end of training
+
+            # save model
+            if model_dir is not None and model_name is not None:
+                alg.save_model_fn(best_model, model_dir,
+                                  "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(alg.dataset_label, alg.sim,
+                                                                              alg.stats.current_param.id,
+                                                                              fold, count.i, model_name, alg.split_label,
+                                                                              epoch,
+                                                                              score))
+
+        if verbose:
+            print("BayOpt hparams search iter = {}: params = {}".format(count.i, alg.stats.current_param))
 
         # get the score of this hyperparameter set
         score = alg.stats.current_param.score
@@ -165,34 +196,12 @@ def _create_objective(alg, fold, train_data, val_data, model_dir, model_name, da
         if str(score) == "nan":
             score = -1e5
 
-        # save model
-        if model_dir is not None and model_name is not None:
-            alg.save_model_fn(best_model, model_dir,
-                              "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(alg.dataset_label, alg.sim,
-                                                                          alg.stats.current_param.id,
-                                                                          fold, count.i, model_name, alg.split_label,
-                                                                          epoch,
-                                                                          score))
-
-        if verbose:
-            print("BayOpt hparams search iter = {}: params = {}".format(count.i, alg.stats.current_param))
-
         # move current hparams to records
         alg.stats.update_records()
         alg.stats.to_csv(alg.results_file)
 
         # we want to maximize the score so negate it to invert minimization by skopt
         return -score
-
-    def train_model(hparams, sim_data_node):
-        # initialize model, dataloaders, and other elements.
-        init_objs = alg.initializer_fn(hparams, train_data, val_data, **alg.init_args)
-
-        # model training
-        alg.train_args["sim_data_node"] = sim_data_node
-        best_model, score, epoch = alg.train_fn(alg._score_fn, *init_objs, **alg.train_args)
-        return best_model, score, epoch
-
     return objective
 
 
@@ -220,33 +229,16 @@ class BayesianOptSearchCV(ParamSearchAlg):
                           "rf": forest_minimize}.get(minimizer.lower(), gp_minimize)
 
     def fit(self, model_dir, model_name, max_iter=100, verbose=True, seed=None):
-        folds_data = []
+        # BayOpt hyperparameter search.
+        space = _transform_hparams_dict(self.config)
+        print("BayOpt space dimension=%d" % len(space))
+        results = self.minimizer(
+            func=_create_objective(self, model_dir, model_name, verbose),
+            dimensions=space,
+            n_calls=max_iter,
+            random_state=seed,
+            acq_func=self.acq_func)
 
-        if self.data_node is not None:
-            self.data_node.data = folds_data
-
-        for fold in range(self.num_folds):
-            k_node = DataNode(label="BayOpt_search_fold-%d" % fold)
-            folds_data.append(k_node)
-
-            # Get data
-            data = self.data_provider_fn(fold, **self.data_args)
-            train_data = data["train"]
-            val_data = data["val"]
-            if "test" in data:
-                test_data = data["test"]
-                self.init_args["test_dataset"] = test_data
-
-            # BayOpt hyperparameter search.
-            space = _transform_hparams_dict(self.config)
-            print("BayOpt space dimension=%d" % len(space))
-            results = self.minimizer(
-                func=_create_objective(self, fold, train_data, val_data, model_dir, model_name, k_node, verbose),
-                dimensions=space,
-                n_calls=max_iter,
-                random_state=seed,
-                acq_func=self.acq_func)
-
-            print("Fold {}, best score={:.4f}".format(fold, results.fun))
+        print("Best score={:.4f}".format(results.fun))
 
         return self.stats
