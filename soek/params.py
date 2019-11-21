@@ -133,9 +133,15 @@ class RealParam(Param):
 class DictParam(Param):
     __name__ = "dict_param"
 
-    def __init__(self, dict_params):
+    def __init__(self, dict_params=dict()):
         super(DictParam, self).__init__(None, None, None, 1)
         self.p_dict = dict_params
+
+    def __getitem__(self, item):
+        return self.p_dict[item]
+
+    def __setitem__(self, key, value):
+        self.p_dict[key] = value
 
     def keys(self):
         return self.p_dict.keys()

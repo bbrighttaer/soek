@@ -67,12 +67,10 @@ class Trainer(abc.ABC):
         pass
 
     @abc.abstractstaticmethod
-    def train(eval_fn, *args, **kwargs):
+    def train(*args, **kwargs):
         """
         Implements the main training loop of the mod
 
-        :param eval_fn: callable
-            Function for evaluating the performance on each batch in the validation phase.
         :param args: tuple
             Training elements provided by the `initializer` method.
         :param kwargs: dict
@@ -82,12 +80,9 @@ class Trainer(abc.ABC):
         pass
 
     @abc.abstractstaticmethod
-    def evaluate_model(eval_fn, *args, **kwargs):
+    def evaluate_model(*args, **kwargs):
         """
         Procedures for loading and evaluating an already trained model goes here.
-
-        :param eval_fn: callable
-            Function for evaluating the performance on each batch in the validation phase.
         :param args: tuple
             Model elements provided by the `initializer` method.
         :param kwargs: dict
