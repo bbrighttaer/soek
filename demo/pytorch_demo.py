@@ -350,7 +350,7 @@ if __name__ == '__main__':
         stats = hparam_search.fit(model_dir="models",
                                   model_name=flags.model_name, max_iter=10, seed=seed)
         print(stats)
-        print("Best params = {}".format(stats.best(m="max")))
+        print("Best params = {}".format(stats.best()))
     else:
         datasets = trainer.data_provider(fold=k)
         model, optimizer, data_loaders, metrics = trainer.initialize(hparams=get_hparams(flags),
