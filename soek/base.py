@@ -64,9 +64,9 @@ class ParamSearchAlg(abc.ABC):
         self.data_provider_fn = data_provider
         self.train_fn = train_fn
         self.save_model_fn = save_model_fn
-        self.init_args = init_args if not init_args else {}
-        self.data_args = data_args if not data_args else {}
-        self.train_args = train_args if not train_args else {}
+        self.init_args = init_args if init_args else {}
+        self.data_args = data_args if data_args else {}
+        self.train_args = train_args if train_args else {}
         self.data_node = data_node
         self.split_label = split_label
         self.sim = sim_label
