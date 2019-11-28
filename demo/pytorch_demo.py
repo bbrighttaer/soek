@@ -35,7 +35,7 @@ date_label = currentDT.strftime("%Y_%m_%d__%H_%M_%S")
 
 seed = 123
 torch.manual_seed(seed)
-torch.cuda.set_device(1)
+torch.cuda.set_device(3)
 np.random.seed(seed)
 random.seed(seed)
 
@@ -365,3 +365,4 @@ if __name__ == '__main__':
             # Save the model
             trainer.save_model(model, flags.model_dir,
                                "mnist_{}_{}_poc_{}_{:.5f}".format(sim_label, flags.model_name, epoch, score))
+    sim_data.to_json('./')

@@ -55,7 +55,7 @@ class ParamSearchAlg(abc.ABC):
     """
 
     def __init__(self, hparam_config, num_folds, initializer, data_provider, train_fn, save_model_fn,
-                 results_file, init_args=dict(), data_args=dict(), train_args=dict(), data_node=None, split_label=None,
+                 results_file, init_args=None, data_args=None, train_args=None, data_node=None, split_label=None,
                  sim_label=None, dataset_label=None):
         self.config = hparam_config
         self.results_file = results_file
@@ -64,15 +64,13 @@ class ParamSearchAlg(abc.ABC):
         self.data_provider_fn = data_provider
         self.train_fn = train_fn
         self.save_model_fn = save_model_fn
-        self.init_args = init_args
-        self.data_args = data_args
-        self.train_args = train_args
-
+        self.init_args = init_args if not init_args else {}
+        self.data_args = data_args if not data_args else {}
+        self.train_args = train_args if not train_args else {}
         self.data_node = data_node
         self.split_label = split_label
         self.sim = sim_label
         self.dataset_label = dataset_label
-
         self.stats = HyperParamStats()
 
     @abc.abstractmethod
@@ -133,12 +131,11 @@ class HyperParamStats(object):
             s += str(rec) + "\n"
         return s
 
-    def best(self, m="min"):
+    def best(self):
         """
-        Find the hyperparameter set in the records that has the best performance. The default approach is that, low
-        values are better.
-
-        :param m: Indicates whether low or high values are better. Valid values are 'min' and 'max'
+        Find the hyperparameter set in the records that has the best performance.
+        High scores are better. Hence, when  the objective is a minimization problem, a simple negation of
+        scores would suffice.
         :return: The best hyperparameter set.
         """
         params = None
@@ -148,15 +145,17 @@ class HyperParamStats(object):
                 best = rec["score"]
                 params = rec
                 continue
-
-            if m == "max":
-                if rec["score"] > best:
-                    best = rec["score"]
-                    params = rec
-            else:
-                if rec["score"] < best:
-                    best = rec["score"]
-                    params = rec
+            if rec["score"] > best:
+                best = rec["score"]
+                params = rec
+            # if m == "max":
+            #     if rec["score"] > best:
+            #         best = rec["score"]
+            #         params = rec
+            # else:
+            #     if rec["score"] < best:
+            #         best = rec["score"]
+            #         params = rec
         return params
 
     def to_csv(self, file):
