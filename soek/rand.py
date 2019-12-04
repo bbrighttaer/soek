@@ -44,14 +44,11 @@ class RandomSearchCV(ParamSearchAlg):
 
                 # Get data
                 data = self.data_provider_fn(fold, **self.data_args)
-                train_data = data["train"]
-                val_data = data["val"]
-                if "test" in data:
-                    test_data = data["test"]
-                    self.init_args["test_dataset"] = test_data
+                if isinstance(data, dict):
+                    data = data.values()
 
                 # initialize model, dataloaders, and other elements.
-                init_objs = self.initializer_fn(hparams, train_data, val_data, **self.init_args)
+                init_objs = self.initializer_fn(hparams, *data, **self.init_args)
 
                 # model training
                 self.train_args["sim_data_node"] = k_node

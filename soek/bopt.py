@@ -158,17 +158,14 @@ def _create_objective(alg, model_dir, model_name, verbose=True):
 
             # Get data
             data = alg.data_provider_fn(fold, **alg.data_args)
-            train_data = data["train"]
-            val_data = data["val"]
-            if "test" in data:
-                test_data = data["test"]
-                alg.init_args["test_dataset"] = test_data
+            if isinstance(data, dict):
+                data = list(data.values())
 
             if verbose:
                 print("\nFold {}, param search iteration {}, hparams={}".format(fold, count.i, hparams))
 
             # initialize model, dataloaders, and other elements.
-            init_objs = alg.initializer_fn(hparams, train_data, val_data, **alg.init_args)
+            init_objs = alg.initializer_fn(hparams, *data, **alg.init_args)
 
             # start of training with selected parameters
             alg.train_args["sim_data_node"] = k_node
