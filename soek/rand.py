@@ -14,19 +14,19 @@ from soek import DataNode
 from soek import ParamInstance, ParamSearchAlg
 
 
-class RandomSearchCV(ParamSearchAlg):
+class RandomSearch(ParamSearchAlg):
 
     def _sample_params(self):
         hparams = {k: self.config[k].sample() for k in self.config}
         return hparams
 
-    def fit(self, model_dir, model_name, max_iter=5, verbose=True, seed=None):
+    def fit(self, model_dir, model_name, verbose=True):
         iter_data_list = []
         if self.data_node is not None:
             self.data_node.data = iter_data_list
 
         # Random hyperparameter search.
-        for i in range(max_iter):
+        for i in range(self.search_alg_args.n_calls):
             folds_data = []
             iter_data_node = DataNode(label="iteration-%d" % i, data=folds_data)
             iter_data_list.append(iter_data_node)

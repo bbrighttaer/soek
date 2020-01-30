@@ -15,12 +15,13 @@ import os
 
 
 def _to_dict(data):
+    """Converts the data of a ::class::DataNode object into a Python dictionary object."""
     # if it is a literal or leave node (value) then no further processing is needed (base condition)
     if not (isinstance(data, DataNode) or isinstance(data, list) or isinstance(data, set)
             or isinstance(data, dict)):
         return data
 
-    # if it is a ``DataNode`` then it should be processed further
+    # if it is a ::class::DataNode then it should be processed further
     elif isinstance(data, DataNode):
         return {data.label: _to_dict(data.data)}
 
@@ -34,37 +35,35 @@ def _to_dict(data):
 
 
 class DataNode(object):
-    """Gathers simulation data in a resource tree for later analysis"""
+    """Gathers simulation data in a resource tree for later analysis."""
 
     def __init__(self, label, data=None):
+        """
+        Creates a ::class::DataNode object for storing data.
+
+        Arguments
+        ----------
+        :param label: String,
+            The name of the node.
+        :param data: object,
+            Any python object.
+        """
         self.label = label
         self.data = data
 
     def to_json(self, path="./"):
+        """
+        Converts the data node object into a JSON file and persists it in the given directory.
+
+        Argument
+        ---------
+        :param path: string
+            The directory to persist the JSON file.
+        """
         os.makedirs(path, exist_ok=True)
         with open(os.path.join(path, self.label + ".json"), "w") as f:
             json.dump({self.label: _to_dict(self.data)}, f)
 
     def to_json_str(self):
+        """Converts the data node to JSON and returns it as a string."""
         return json.dumps({self.label: _to_dict(self.data)})
-
-# Test
-# sim_data = DataNode(label='node_label')
-# nodes_list = []
-# sim_data.data = nodes_list
-# data_node = DataNode(label="seed_0")
-# nodes_list.append(data_node)
-#
-# # sub-nodes of sim data resource
-# loss_lst = []
-# train_loss_node = DataNode(label="training_loss", data=loss_lst)
-# metrics_dict = {}
-# metrics_node = DataNode(label="validation_metrics", data=metrics_dict)
-# scores_lst = []
-# scores_node = DataNode(label="validation_score", data=scores_lst)
-#
-# # add sim data nodes to parent node
-# sim_data_node = data_node
-# if sim_data_node:
-#     sim_data_node.data = [train_loss_node, metrics_node, scores_node]
-# sim_data.to_json(path="./")

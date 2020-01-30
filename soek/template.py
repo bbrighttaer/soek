@@ -10,25 +10,19 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import abc
 
-
-class Trainer(abc.ABC):
+class Trainer(object):
     """A template class for model training. It's been constructed to be compatible with hyperparameter
     search, as implemented in this project.
     """
 
-    @abc.abstractstaticmethod
-    def initialize(hparams, train_dataset, val_dataset, *args, **kwargs):
+    @staticmethod
+    def initialize(hparams, *args, **kwargs):
         """
         Creates all model training elements.
 
         :param hparams: dict
             Hyperparamters for creating the model and the training algorithm elements.
-        :param train_dataset: torch.utils.data
-            Train dataset.
-        :param val_dataset: torch.utils.data
-            Validation dataset.
         :param args:
             Extra arguments to this method as desired.
         :param kwargs:
@@ -37,14 +31,12 @@ class Trainer(abc.ABC):
         """
         pass
 
-    @abc.abstractstaticmethod
-    def data_provider(fold, *args, **kwargs):
+    @staticmethod
+    def data_provider(*args, **kwargs):
         """
-        Provides the datasets for each fold for training. Standard train-validation(-test) split is treated as a one
+        Provides the data for training. Standard train-validation(-test) split is treated as a one
         split by the hyperparameter search algorithm.
 
-        :param fold: int
-            Current fold number.
         :param args:
             Extra arguments to this method as desired.
         :param kwargs:
@@ -54,7 +46,7 @@ class Trainer(abc.ABC):
         """
         pass
 
-    @abc.abstractstaticmethod
+    @staticmethod
     def evaluate(*args, **kwargs):
         """
         Evaluation function that is called after every batch in the evaluation phase.
@@ -66,7 +58,7 @@ class Trainer(abc.ABC):
         """
         pass
 
-    @abc.abstractstaticmethod
+    @staticmethod
     def train(*args, **kwargs):
         """
         Implements the main training loop of the mod
@@ -75,11 +67,14 @@ class Trainer(abc.ABC):
             Training elements provided by the `initializer` method.
         :param kwargs: dict
             Extra arguments to this method as desired.
-        :return:
+        :return: dict
+            A dictionary with the following structure:
+            `{'model': best_model, 'score': best_score, 'epoch': best_epoch}`
+            This enables easy persistence of the model.
         """
         pass
 
-    @abc.abstractstaticmethod
+    @staticmethod
     def evaluate_model(*args, **kwargs):
         """
         Procedures for loading and evaluating an already trained model goes here.
@@ -91,7 +86,7 @@ class Trainer(abc.ABC):
         """
         pass
 
-    @abc.abstractstaticmethod
+    @staticmethod
     def save_model(model, path, name):
         """
         Saves the model parameters.
@@ -103,7 +98,7 @@ class Trainer(abc.ABC):
         """
         pass
 
-    @abc.abstractstaticmethod
+    @staticmethod
     def load_model(path, name):
         """
         Loads the parameters of a model.

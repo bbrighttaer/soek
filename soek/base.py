@@ -55,8 +55,8 @@ class ParamSearchAlg(abc.ABC):
     """
 
     def __init__(self, hparam_config, num_folds, initializer, data_provider, train_fn, save_model_fn,
-                 results_file, init_args=None, data_args=None, train_args=None, data_node=None, split_label=None,
-                 sim_label=None, dataset_label=None):
+                 results_file, alg_args, init_args=None, data_args=None, train_args=None, data_node=None,
+                 split_label=None, sim_label=None, dataset_label=None):
         self.config = hparam_config
         self.results_file = results_file
         self.num_folds = num_folds
@@ -64,6 +64,7 @@ class ParamSearchAlg(abc.ABC):
         self.data_provider_fn = data_provider
         self.train_fn = train_fn
         self.save_model_fn = save_model_fn
+        self.search_alg_args = alg_args
         self.init_args = init_args if init_args else {}
         self.data_args = data_args if data_args else {}
         self.train_args = train_args if train_args else {}
@@ -74,7 +75,7 @@ class ParamSearchAlg(abc.ABC):
         self.stats = HyperParamStats()
 
     @abc.abstractmethod
-    def fit(self, model_dir, model_name, max_iter=5, verbose=True):
+    def fit(self, model_dir, model_name, verbose=True):
         pass
 
 

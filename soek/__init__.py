@@ -12,6 +12,6 @@ from __future__ import unicode_literals
 from .base import ParamSearchAlg, HyperParamStats, ParamInstance
 from .sim_data import DataNode
 from .params import ConstantParam, CategoricalParam, RealParam, LogRealParam, DictParam, DiscreteParam
-from .bopt import BayesianOptSearchCV
-from .rand import RandomSearchCV
+from .bopt import BayesianOptSearch
+from .rand import RandomSearch
 from .template import Trainer

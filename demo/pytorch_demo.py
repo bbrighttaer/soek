@@ -28,7 +28,8 @@ from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 
 import soek as so
-from soek import RandomSearchCV, BayesianOptSearchCV, DataNode
+from soek import RandomSearch, BayesianOptSearch, DataNode
+from soek.bopt import SearchArg
 
 currentDT = dt.now()
 date_label = currentDT.strftime("%Y_%m_%d__%H_%M_%S")
@@ -328,15 +329,16 @@ if __name__ == '__main__':
 
         hparams_conf = get_hparam_config(flags)
 
-        search_alg = {"random_search": RandomSearchCV,
-                      "bayopt_search": BayesianOptSearchCV}.get(flags.hparam_search_alg, BayesianOptSearchCV)
-
+        search_alg = {"random_search": RandomSearch,
+                      "bayopt_search": BayesianOptSearch}.get(flags.hparam_search_alg, BayesianOptSearch)
+        search_args = SearchArg(n_calls=10)
         hparam_search = search_alg(hparam_config=hparams_conf,
                                    num_folds=k,
                                    initializer=trainer.initialize,
                                    data_provider=trainer.data_provider,
                                    train_fn=trainer.train,
                                    save_model_fn=trainer.save_model,
+                                   alg_args=search_args,
                                    init_args=extra_init_args,
                                    data_args=extra_data_args,
                                    train_args=extra_train_args,
@@ -344,11 +346,9 @@ if __name__ == '__main__':
                                    split_label="train_val",
                                    sim_label=sim_label,
                                    dataset_label="mnist",
-                                   # minimizer="gbrt",  # This parameter is only applicable to BayesianOptSearchCV
                                    results_file="{}_{}_poc_{}.csv".format(flags.hparam_search_alg, sim_label,
                                                                           date_label))
-        stats = hparam_search.fit(model_dir="models",
-                                  model_name=flags.model_name, max_iter=10, seed=seed)
+        stats = hparam_search.fit(model_dir="models", model_name=flags.model_name)
         print(stats)
         print("Best params = {}".format(stats.best()))
     else:
