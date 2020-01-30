@@ -54,8 +54,8 @@ class ParamSearchAlg(abc.ABC):
         data_node: ``DataNode`` for collecting a simulation instance's data
     """
 
-    def __init__(self, hparam_config, num_folds, initializer, data_provider, train_fn, save_model_fn,
-                 results_file, alg_args, init_args=None, data_args=None, train_args=None, data_node=None,
+    def __init__(self, hparam_config, initializer, data_provider, train_fn, save_model_fn, results_file, alg_args,
+                 num_folds=1, init_args=None, data_args=None, train_args=None, data_node=None,
                  split_label=None, sim_label=None, dataset_label=None):
         self.config = hparam_config
         self.results_file = results_file
@@ -64,7 +64,7 @@ class ParamSearchAlg(abc.ABC):
         self.data_provider_fn = data_provider
         self.train_fn = train_fn
         self.save_model_fn = save_model_fn
-        self.search_alg_args = alg_args
+        self.alg_args = alg_args
         self.init_args = init_args if init_args else {}
         self.data_args = data_args if data_args else {}
         self.train_args = train_args if train_args else {}
@@ -176,4 +176,4 @@ class HyperParamStats(object):
         if len(self.records) > 0:
             df = pd.DataFrame(data=df_dict)
             df = df.sort_values(by=["score"], ascending=False).reset_index(drop=True)
-            df.to_csv(file, index=False)
+            df.to_csv(file + '.csv', index=False)

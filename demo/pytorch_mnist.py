@@ -2,7 +2,7 @@
 # Project: soek
 # Date: 8/30/19
 # Time: 4:11 PM
-# File: pytorch_demo.py
+# File: pytorch_mnist.py
 
 
 from __future__ import absolute_import
@@ -26,17 +26,18 @@ import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
+from skopt.plots import plot_evaluations, plot_objective
 
 import soek as so
 from soek import RandomSearch, BayesianOptSearch, DataNode
-from soek.bopt import SearchArg
+from soek.bopt import ForestMinArgs, GBRTMinArgs, GPMinArgs
 
 currentDT = dt.now()
 date_label = currentDT.strftime("%Y_%m_%d__%H_%M_%S")
 
 seed = 123
 torch.manual_seed(seed)
-torch.cuda.set_device(3)
+torch.cuda.set_device(0)
 np.random.seed(seed)
 random.seed(seed)
 
@@ -331,7 +332,8 @@ if __name__ == '__main__':
 
         search_alg = {"random_search": RandomSearch,
                       "bayopt_search": BayesianOptSearch}.get(flags.hparam_search_alg, BayesianOptSearch)
-        search_args = SearchArg(n_calls=10)
+        # search_args = SearchArg(n_calls=10) # For random search.
+        search_args = GPMinArgs(n_calls=10)  # For bayesian optimization.
         hparam_search = search_alg(hparam_config=hparams_conf,
                                    num_folds=k,
                                    initializer=trainer.initialize,
@@ -346,11 +348,22 @@ if __name__ == '__main__':
                                    split_label="train_val",
                                    sim_label=sim_label,
                                    dataset_label="mnist",
-                                   results_file="{}_{}_poc_{}.csv".format(flags.hparam_search_alg, sim_label,
-                                                                          date_label))
+                                   results_file="{}_{}_poc_{}".format(flags.hparam_search_alg, sim_label, date_label))
         stats = hparam_search.fit(model_dir="models", model_name=flags.model_name)
         print(stats)
         print("Best params = {}".format(stats.best()))
+
+        # Plots of hyperparameter search results. Only applicable when using any of the scikit-optimize algorithms.
+        if isinstance(hparam_search, BayesianOptSearch):
+            res = hparam_search.results
+            if res is not None:
+                r = plot_evaluations(res, bins=10)
+                eval_fig = np.random.choice(r.ravel()).figure
+                eval_fig.savefig('hparam_evaluations.png')
+                r = plot_objective(res)
+                obj_func_eval_fig = np.random.choice(r.ravel()).figure
+                obj_func_eval_fig.savefig('hparam_obj_func_eval.png')
+
     else:
         datasets = trainer.data_provider(fold=k)
         model, optimizer, data_loaders, metrics = trainer.initialize(hparams=get_hparams(flags),

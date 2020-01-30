@@ -15,6 +15,6 @@ setup(
     license='MIT',
     author='Brighter Agyemang',
     author_email='brighteragyemang@gmail.com',
-    description='A simple hyperparameter searching library for Machine Learning.',
-    install_requires=['numpy', 'scikit-optimize']
+    description='A simple hyperparameter searching library for Machine Learning based on Scikit-Optimize.',
+    install_requires=['numpy', 'scikit-optimize', 'pandas']
 )

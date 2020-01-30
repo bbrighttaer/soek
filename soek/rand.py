@@ -26,7 +26,7 @@ class RandomSearch(ParamSearchAlg):
             self.data_node.data = iter_data_list
 
         # Random hyperparameter search.
-        for i in range(self.search_alg_args.n_calls):
+        for i in range(self.alg_args.n_calls):
             folds_data = []
             iter_data_node = DataNode(label="iteration-%d" % i, data=folds_data)
             iter_data_list.append(iter_data_node)
@@ -42,10 +42,12 @@ class RandomSearch(ParamSearchAlg):
                 k_node = DataNode(label="Random_search_fold-%d" % fold)
                 folds_data.append(k_node)
 
-                # Get data
-                data = self.data_provider_fn(fold, **self.data_args)
-                if isinstance(data, dict):
-                    data = data.values()
+                if self.data_provider_fn is not None:
+                    data = self.data_provider_fn(fold, **self.data_args)
+                    if isinstance(data, dict):
+                        data = data.values()
+                else:
+                    data = {}
 
                 # initialize model, dataloaders, and other elements.
                 init_objs = self.initializer_fn(hparams, *data, **self.init_args)
@@ -56,7 +58,7 @@ class RandomSearch(ParamSearchAlg):
                 best_model, score, epoch = results['model'], results['score'], results['epoch']
                 self.stats.current_param.add_score(score)
 
-                # avoid nan scores in search. TODO: replace this hack with an organic approach.
+                # avoid nan scores in search. TODO(bbrighttaer): replace this hack with a natural approach.
                 if str(score) == "nan":
                     score = -1e5
 

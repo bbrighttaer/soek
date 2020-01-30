@@ -16,10 +16,10 @@ from skopt import gp_minimize, gbrt_minimize, forest_minimize
 from skopt.space import Integer, Real, Categorical
 from skopt.utils import use_named_args
 
-from soek import ParamSearchAlg, ParamInstance
 from soek import ConstantParam, LogRealParam, DiscreteParam, CategoricalParam, DictParam, \
     RealParam
 from soek import DataNode
+from soek import ParamSearchAlg, ParamInstance
 
 size_suffix = "_size"
 
@@ -159,9 +159,12 @@ def _create_objective(alg, model_dir, model_name, verbose=True):
             folds_data.append(k_node)
 
             # Get data
-            data = alg.data_provider_fn(fold, **alg.data_args)
-            if isinstance(data, dict):
-                data = list(data.values())
+            if alg.data_provider_fn is not None:
+                data = alg.data_provider_fn(fold, **alg.data_args)
+                if isinstance(data, dict):
+                    data = list(data.values())
+            else:
+                data = {}
 
             if verbose:
                 print("\nFold {}, param search iteration {}, hparams={}".format(fold, count.i, hparams))
@@ -198,7 +201,7 @@ def _create_objective(alg, model_dir, model_name, verbose=True):
 
         # move current hparams to records
         alg.stats.update_records()
-        alg.stats.to_csv(alg.results_file)
+        alg.stats.to_csv(alg.results_file + '_' + alg.alg_args.type())
 
         # we want to maximize the score so negate it to invert minimization by skopt
         return -score
@@ -224,21 +227,19 @@ class BayesianOptSearch(ParamSearchAlg):
 
     def __init__(self, *args, **kwargs):
         super(BayesianOptSearch, self).__init__(*args, **kwargs)
-        self._skopt_args = skopt_args_dict
-        self.minimizer = {"gp": gp_minimize,
-                          "gbrt": gbrt_minimize,
-                          "rf": forest_minimize}.get(minimizer.lower(), gp_minimize)
+        assert (isinstance(self.alg_args, SkoptArgs))
+        self.minimizer_func = {"gp": gp_minimize,
+                               "gbrt": gbrt_minimize,
+                               "rf": forest_minimize}.get(self.alg_args.type().lower(), gp_minimize)
+        self.results = None
 
     def fit(self, model_dir, model_name, verbose=True):
-        # BayOpt hyperparameter search.
         space = _transform_hparams_dict(self.config)
         print("BayOpt space dimension=%d" % len(space))
-        results = self.minimizer(
-            func=_create_objective(self, model_dir, model_name, verbose),
-            dimensions=space,
-            acq_func=self._acq_func)
+        self.results = self.minimizer_func(func=_create_objective(self, model_dir, model_name, verbose),
+                                           dimensions=space, **self.alg_args.args)
 
-        print("Best score={:.4f}".format(results.fun))
+        print("Best score={:.4f}".format(self.results.fun))
 
         return self.stats
 
@@ -259,26 +260,24 @@ class SearchArg:
 class SkoptArgs(SearchArg):
     """Base class for defining parameters of all Scikit-Optimize surrogate models."""
 
-    def __init__(self, func, base_estimator, n_random_starts=10, acq_optimizer="lbfgs", n_calls=100, random_state=None,
-                 x0=None, y0=None, verbose=False, callback=None, n_points=10000, n_restarts_optimizer=5, acq_func='EI',
-                 xi=0.01, kappa=1.96, n_jobs=1):
+    def __init__(self, base_estimator, n_random_starts=10, n_calls=100, random_state=None, x0=None, y0=None,
+                 verbose=False, callback=None, n_points=10000, acq_func='EI', xi=0.01,
+                 kappa=1.96, n_jobs=1):
         super(SkoptArgs, self).__init__(n_calls=n_calls)
-        self.func = func
         self.base_estimator = base_estimator
         self.n_random_starts = n_random_starts
-        self.acq_optimizer = acq_optimizer
         self.x0 = x0
         self.y0 = y0
         self.verbose = verbose
         self.callback = callback
         self.n_points = n_points
-        self.n_restarts_optimizer = n_restarts_optimizer
         self.random_state = random_state
         self.acq_func = acq_func
         self.xi = xi
         self.kappa = kappa
         self.n_jobs = n_jobs
 
+    @property
     def args(self):
         return self.__dict__
 
@@ -290,13 +289,11 @@ class SkoptArgs(SearchArg):
 class ForestMinArgs(SkoptArgs):
     """forest_minimize parameters."""
 
-    def __init__(self, func, base_estimator='ET', n_calls=100, n_random_starts=10, acq_func='EI', x0=None,
+    def __init__(self, base_estimator='ET', n_calls=100, n_random_starts=10, acq_func='EI', x0=None,
                  y0=None, random_state=None, verbose=False, callback=None, n_points=10000, xi=0.01, kappa=1.96,
                  n_jobs=1, model_queue_size=None):
-        super(ForestMinArgs, self).__init__(func=func,
-                                            base_estimator=base_estimator,
+        super(ForestMinArgs, self).__init__(base_estimator=base_estimator,
                                             n_random_starts=n_random_starts,
-                                            acq_optimizer='sampling',
                                             x0=x0,
                                             y0=y0,
                                             random_state=random_state,
@@ -317,15 +314,13 @@ class ForestMinArgs(SkoptArgs):
 class GBRTMinArgs(SkoptArgs):
     """gbrt_minimize parameters."""
 
-    def __init__(self, func, base_estimator=None, n_calls=100, n_random_starts=10, acq_func='EI',
-                 acq_optimizer='auto', x0=None, y0=None, random_state=None, verbose=False, callback=None,
-                 n_points=10000, xi=0.01, kappa=1.96, n_jobs=1, model_queue_size=None):
-        super(GBRTMinArgs, self).__init__(func=func,
-                                          base_estimator=base_estimator,
+    def __init__(self, base_estimator=None, n_calls=100, n_random_starts=10, acq_func='EI', x0=None, y0=None,
+                 random_state=None, verbose=False, callback=None, n_points=10000, xi=0.01, kappa=1.96, n_jobs=1,
+                 model_queue_size=None):
+        super(GBRTMinArgs, self).__init__(base_estimator=base_estimator,
                                           n_calls=n_calls,
                                           n_random_starts=n_random_starts,
                                           acq_func=acq_func,
-                                          acq_optimizer=acq_optimizer,
                                           x0=x0,
                                           y0=y0,
                                           random_state=random_state,
@@ -344,16 +339,14 @@ class GBRTMinArgs(SkoptArgs):
 class GPMinArgs(SkoptArgs):
     """gp_minimize parameters."""
 
-    def __init__(self, func, base_estimator=None, n_calls=100, n_random_starts=10, acq_func='gp_hedge',
+    def __init__(self, base_estimator=None, n_calls=100, n_random_starts=10, acq_func='gp_hedge',
                  acq_optimizer='auto', x0=None, y0=None, random_state=None, verbose=False, callback=None,
                  n_points=10000, n_restarts_optimizer=5, xi=0.01, kappa=1.96, noise='gaussian', n_jobs=1,
                  model_queue_size=None):
-        super(GPMinArgs, self).__init__(func=func,
-                                        base_estimator=base_estimator,
+        super(GPMinArgs, self).__init__(base_estimator=base_estimator,
                                         n_calls=n_calls,
                                         n_random_starts=n_random_starts,
                                         acq_func=acq_func,
-                                        acq_optimizer=acq_optimizer,
                                         x0=x0,
                                         y0=y0,
                                         random_state=random_state,
@@ -362,9 +355,10 @@ class GPMinArgs(SkoptArgs):
                                         n_points=n_points,
                                         xi=xi,
                                         kappa=kappa,
-                                        n_restarts_optimizer=n_restarts_optimizer,
                                         n_jobs=n_jobs)
         self.noise = noise
+        self.acq_optimizer = acq_optimizer
+        self.n_restarts_optimizer = n_restarts_optimizer
         self.model_queue_size = model_queue_size
 
     def type(self):
