@@ -54,7 +54,7 @@ class ParamSearchAlg(abc.ABC):
         data_node: ``DataNode`` for collecting a simulation instance's data
     """
 
-    def __init__(self, hparam_config, initializer, data_provider, train_fn, save_model_fn, results_file, alg_args,
+    def __init__(self, hparam_config, initializer, train_fn, save_model_fn, results_file, alg_args, data_provider=None,
                  num_folds=1, init_args=None, data_args=None, train_args=None, data_node=None,
                  split_label=None, sim_label=None, dataset_label=None):
         self.config = hparam_config
