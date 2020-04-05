@@ -52,7 +52,7 @@ class DiscreteParam(Param):
         if self.is_list:
             return val
         else:
-            return val[0]
+            return int(val[0])
 
 
 class CategoricalParam(Param):
