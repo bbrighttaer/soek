@@ -174,7 +174,8 @@ def _create_objective(alg, model_dir, model_name, verbose=True):
 
             # start of training with selected parameters
             alg.train_args["sim_data_node"] = k_node
-            results = alg.train_fn(*init_objs, **alg.train_args)
+            results = alg.train_fn(*init_objs if isinstance(init_objs, (list, tuple)) else init_objs,
+                                   **alg.train_args)
             best_model, score, epoch = results['model'], results['score'], results['epoch']
             alg.stats.current_param.add_score(score)
             # end of training

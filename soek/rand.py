@@ -54,7 +54,8 @@ class RandomSearch(ParamSearchAlg):
 
                 # model training
                 self.train_args["sim_data_node"] = k_node
-                results = self.train_fn(*init_objs, **self.train_args)
+                results = self.train_fn(*init_objs if isinstance(init_objs, (list, tuple)) else init_objs,
+                                        **self.train_args)
                 best_model, score, epoch = results['model'], results['score'], results['epoch']
                 self.stats.current_param.add_score(score)
 
