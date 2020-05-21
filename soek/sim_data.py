@@ -37,7 +37,7 @@ def _to_dict(data):
 class DataNode(object):
     """Gathers simulation data in a resource tree for later analysis."""
 
-    def __init__(self, label, data=None):
+    def __init__(self, label, data=None, metadata=None):
         """
         Creates a ::class::DataNode object for storing data.
 
@@ -50,6 +50,7 @@ class DataNode(object):
         """
         self.label = label
         self.data = data
+        self.metadata = metadata
 
     def to_json(self, path="./"):
         """
@@ -62,7 +63,7 @@ class DataNode(object):
         """
         os.makedirs(path, exist_ok=True)
         with open(os.path.join(path, self.label + ".json"), "w") as f:
-            json.dump({self.label: _to_dict(self.data)}, f)
+            json.dump({self.label: _to_dict(self.data), 'metadata': self.metadata}, f)
 
     def to_json_str(self):
         """Converts the data node to JSON and returns it as a string."""

@@ -316,7 +316,7 @@ if __name__ == '__main__':
 
     # Simulation data resource tree
     sim_label = "Soek_pytorch_mnist_demo"
-    sim_data = DataNode(label=sim_label)
+    sim_data = DataNode(label=sim_label, metadata='put any extra information here')
 
     trainer = Demo()
     k = 1

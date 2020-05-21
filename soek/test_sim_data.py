@@ -5,7 +5,7 @@ from soek import DataNode
 
 class DataNodeTestCase(unittest.TestCase):
     def test_something(self):
-        sim_data = DataNode(label='node_label')
+        sim_data = DataNode(label='node_label', metadata='test the metadata')
         nodes_list = []
         sim_data.data = nodes_list
         data_node = DataNode(label="seed_0")
