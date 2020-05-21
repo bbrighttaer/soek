@@ -75,7 +75,7 @@ class ParamSearchAlg(abc.ABC):
         self.stats = HyperParamStats()
 
     @abc.abstractmethod
-    def fit(self, model_dir, model_name, verbose=True):
+    def fit(self, model_dir=None, model_name=None, verbose=True):
         pass
 
 

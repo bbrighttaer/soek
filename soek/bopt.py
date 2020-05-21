@@ -233,7 +233,7 @@ class BayesianOptSearch(ParamSearchAlg):
                                "rf": forest_minimize}.get(self.alg_args.type().lower(), gp_minimize)
         self.results = None
 
-    def fit(self, model_dir, model_name, verbose=True):
+    def fit(self, model_dir=None, model_name=None, verbose=True):
         space = _transform_hparams_dict(self.config)
         print("BayOpt space dimension=%d" % len(space))
         self.results = self.minimizer_func(func=_create_objective(self, model_dir, model_name, verbose),

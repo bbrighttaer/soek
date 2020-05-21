@@ -20,7 +20,7 @@ class RandomSearch(ParamSearchAlg):
         hparams = {k: self.config[k].sample() for k in self.config}
         return hparams
 
-    def fit(self, model_dir, model_name, verbose=True):
+    def fit(self, model_dir=None, model_name=None, verbose=True):
         iter_data_list = []
         if self.data_node is not None:
             self.data_node.data = iter_data_list
