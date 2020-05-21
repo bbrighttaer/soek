@@ -67,4 +67,4 @@ class DataNode(object):
 
     def to_json_str(self):
         """Converts the data node to JSON and returns it as a string."""
-        return json.dumps({self.label: _to_dict(self.data)})
+        return json.dumps({self.label: _to_dict(self.data), 'metadata': self.metadata})
