@@ -1,1 +1,1 @@
-{"node_label": [{"seed_0": [{"training_loss": []}, {"validation_metrics": {}}, {"validation_score": []}]}], "metadata": "test the metadata"}
+{"node_label": [{"seed_0": [{"training_loss": [1.3]}, {"validation_metrics": {}}, {"validation_score": []}]}], "metadata": "test the metadata"}

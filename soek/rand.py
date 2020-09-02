@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 
 from soek import DataNode
 from soek import ParamInstance, ParamSearchAlg
+from soek.base import NumpyRandomSeed
 
 
 class RandomSearch(ParamSearchAlg):
@@ -20,7 +21,7 @@ class RandomSearch(ParamSearchAlg):
         hparams = {k: self.config[k].sample() for k in self.config}
         return hparams
 
-    def fit(self, model_dir=None, model_name=None, verbose=True):
+    def fit(self, model_dir=None, model_name=None, seed=None, verbose=True):
         iter_data_list = []
         if self.data_node is not None:
             self.data_node.data = iter_data_list
@@ -35,44 +36,45 @@ class RandomSearch(ParamSearchAlg):
             hparams = self._sample_params()
             self.stats.current_param = ParamInstance(hparams)
 
-            for fold in range(self.num_folds):
-                if verbose:
-                    print("\nFold {}, param search iteration {}, hparams={}".format(fold, i, hparams))
+            with NumpyRandomSeed(seed):
+                for fold in range(self.num_folds):
+                    if verbose:
+                        print("\nFold {}, param search iteration {}, hparams={}".format(fold, i, hparams))
 
-                k_node = DataNode(label="Random_search_fold-%d" % fold)
-                folds_data.append(k_node)
+                    k_node = DataNode(label="Random_search_fold-%d" % fold)
+                    folds_data.append(k_node)
 
-                if self.data_provider_fn is not None:
-                    data = self.data_provider_fn(fold, **self.data_args)
-                    if isinstance(data, dict):
-                        data = data.values()
-                else:
-                    data = {}
+                    if self.data_provider_fn is not None:
+                        data = self.data_provider_fn(fold, **self.data_args)
+                        if isinstance(data, dict):
+                            data = data.values()
+                    else:
+                        data = {}
 
-                # initialize model, dataloaders, and other elements.
-                init_objs = self.initializer_fn(hparams, *data, **self.init_args)
+                    # initialize model, dataloaders, and other elements.
+                    init_objs = self.initializer_fn(hparams, *data, **self.init_args)
 
-                # model training
-                self.train_args["sim_data_node"] = k_node
-                if isinstance(init_objs, dict):
-                    results = self.train_fn(init_objs, **self.train_args)
-                else:
-                    results = self.train_fn(*init_objs, **self.train_args)
-                best_model, score, epoch = results['model'], results['score'], results['epoch']
-                self.stats.current_param.add_score(score)
+                    # model training
+                    self.train_args["sim_data_node"] = k_node
+                    if isinstance(init_objs, dict):
+                        results = self.train_fn(init_objs, **self.train_args)
+                    else:
+                        results = self.train_fn(*init_objs, **self.train_args)
+                    best_model, score, epoch = results['model'], results['score'], results['epoch']
+                    self.stats.current_param.add_score(score)
 
-                # avoid nan scores in search. TODO(bbrighttaer): replace this hack with a natural approach.
-                if str(score) == "nan":
-                    score = -1e5
+                    # avoid nan scores in search. TODO(bbrighttaer): replace this hack with a natural approach.
+                    if str(score) == "nan":
+                        score = -1e5
 
-                # save model
-                if model_dir is not None and model_name is not None:
-                    self.save_model_fn(best_model, model_dir,
-                                       "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(self.dataset_label, self.sim,
-                                                                                   self.stats.current_param.id,
-                                                                                   fold, i, model_name,
-                                                                                   self.split_label, epoch,
-                                                                                   score))
+                    # save model
+                    if model_dir is not None and model_name is not None:
+                        self.save_model_fn(best_model, model_dir,
+                                           "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(self.dataset_label, self.sim,
+                                                                                       self.stats.current_param.id,
+                                                                                       fold, i, model_name,
+                                                                                       self.split_label, epoch,
+                                                                                       score))
             if verbose:
                 print("Random search iter = {}: params = {}".format(i, self.stats.current_param))
 

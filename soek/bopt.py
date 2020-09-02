@@ -20,6 +20,7 @@ from soek import ConstantParam, LogRealParam, DiscreteParam, CategoricalParam, D
     RealParam
 from soek import DataNode
 from soek import ParamSearchAlg, ParamInstance
+from soek.base import NumpyRandomSeed
 
 size_suffix = "_size"
 
@@ -154,43 +155,44 @@ def _create_objective(alg, model_dir, model_name, verbose=True):
         hparams = _to_hparams_dict(bopt_params=bopt_params, params_config=alg.config)
         alg.stats.current_param = ParamInstance(hparams)
 
-        for fold in range(alg.num_folds):
-            k_node = DataNode(label="BayOpt_search_fold-%d" % fold)
-            folds_data.append(k_node)
+        with NumpyRandomSeed(alg.alg_args.random_state):
+            for fold in range(alg.num_folds):
+                k_node = DataNode(label="BayOpt_search_fold-%d" % fold)
+                folds_data.append(k_node)
 
-            # Get data
-            if alg.data_provider_fn is not None:
-                data = alg.data_provider_fn(fold, **alg.data_args)
-                if isinstance(data, dict):
-                    data = list(data.values())
-            else:
-                data = {}
+                # Get data
+                if alg.data_provider_fn is not None:
+                    data = alg.data_provider_fn(fold, **alg.data_args)
+                    if isinstance(data, dict):
+                        data = list(data.values())
+                else:
+                    data = {}
 
-            if verbose:
-                print("\nFold {}, param search iteration {}, hparams={}".format(fold, count.i, hparams))
+                if verbose:
+                    print("\nFold {}, param search iteration {}, hparams={}".format(fold, count.i, hparams))
 
-            # initialize model, dataloaders, and other elements.
-            init_objs = alg.initializer_fn(hparams, *data, **alg.init_args)
+                # initialize model, dataloaders, and other elements.
+                init_objs = alg.initializer_fn(hparams, *data, **alg.init_args)
 
-            # start of training with selected parameters
-            alg.train_args["sim_data_node"] = k_node
-            if isinstance(init_objs, dict):
-                results = alg.train_fn(init_objs, **alg.train_args)
-            else:
-                results = alg.train_fn(*init_objs, **alg.train_args)
-            best_model, score, epoch = results['model'], results['score'], results['epoch']
-            alg.stats.current_param.add_score(score)
-            # end of training
+                # start of training with selected parameters
+                alg.train_args["sim_data_node"] = k_node
+                if isinstance(init_objs, dict):
+                    results = alg.train_fn(init_objs, **alg.train_args)
+                else:
+                    results = alg.train_fn(*init_objs, **alg.train_args)
+                best_model, score, epoch = results['model'], results['score'], results['epoch']
+                alg.stats.current_param.add_score(score)
+                # end of training
 
-            # save model
-            if model_dir is not None and model_name is not None:
-                alg.save_model_fn(best_model, model_dir,
-                                  "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(alg.dataset_label, alg.sim,
-                                                                              alg.stats.current_param.id,
-                                                                              fold, count.i, model_name,
-                                                                              alg.split_label,
-                                                                              epoch,
-                                                                              score))
+                # save model
+                if model_dir is not None and model_name is not None:
+                    alg.save_model_fn(best_model, model_dir,
+                                      "{}_{}-{}-fold{}-{}-{}-{}-{}-{:.4f}".format(alg.dataset_label, alg.sim,
+                                                                                  alg.stats.current_param.id,
+                                                                                  fold, count.i, model_name,
+                                                                                  alg.split_label,
+                                                                                  epoch,
+                                                                                  score))
 
         if verbose:
             print("BayOpt hparams search iter = {}: params = {}".format(count.i, alg.stats.current_param))

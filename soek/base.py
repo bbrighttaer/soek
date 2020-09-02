@@ -177,3 +177,18 @@ class HyperParamStats(object):
             df = pd.DataFrame(data=df_dict)
             df = df.sort_values(by=["score"], ascending=False).reset_index(drop=True)
             df.to_csv(file + '.csv', index=False)
+
+
+class NumpyRandomSeed:
+    def __init__(self, seed=None):
+        self.seed = seed
+        self._backup_state = None
+
+    def __enter__(self):
+        if self.seed:
+            self._backup_state = np.random.get_state()
+            np.random.seed(self.seed)
+
+    def __exit__(self, *args, **kwargs):
+        if self.seed:
+            np.random.set_state(self._backup_state)

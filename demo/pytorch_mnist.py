@@ -35,13 +35,14 @@ from soek.bopt import ForestMinArgs, GBRTMinArgs, GPMinArgs
 currentDT = dt.now()
 date_label = currentDT.strftime("%Y_%m_%d__%H_%M_%S")
 
+CUDA = torch.cuda.is_available()
+
 seed = 123
 torch.manual_seed(seed)
-torch.cuda.set_device(0)
+if CUDA:
+    torch.cuda.set_device(0)
 np.random.seed(seed)
 random.seed(seed)
-
-CUDA = torch.cuda.is_available()
 
 DATA_DIR = "~/.pytorch"
 
@@ -333,7 +334,7 @@ if __name__ == '__main__':
         search_alg = {"random_search": RandomSearch,
                       "bayopt_search": BayesianOptSearch}.get(flags.hparam_search_alg, BayesianOptSearch)
         # search_args = SearchArg(n_calls=10) # For random search.
-        search_args = GPMinArgs(n_calls=10)  # For bayesian optimization.
+        search_args = GPMinArgs(n_calls=10, random_state=seed)  # For bayesian optimization.
         hparam_search = search_alg(hparam_config=hparams_conf,
                                    num_folds=k,
                                    initializer=trainer.initialize,
